@@ -88,8 +88,6 @@ def run_inference(config, use_liteml):
             for entry in list(outs):
                 outs[entry] = outs[entry].transpose()
 
-        # TODO: add hooks
-
         outs = get_pts_desc_from_agent(val_agent, img_0, device=device)
         pts, desc = outs["pts"], outs["desc"]  # pts: np [3, N]
         if i == 200:
