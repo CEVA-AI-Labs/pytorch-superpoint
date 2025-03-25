@@ -29,6 +29,7 @@ from utils.utils import save_checkpoint
 from pathlib import Path
 from models.model_wrap import SuperPointFrontend_torch
 from liteml.ailabs_liteml.retrainer import RetrainerConfig, RetrainerModel
+from utils.liteml_pretrained import from_pretrained
 from datasets.Coco import Coco
 
 @torch.no_grad()
@@ -83,12 +84,12 @@ class Val_model_heatmap(SuperPointFrontend_torch):
         if self.liteml_config_path is not None: # wrap with LiteML
             if self.liteml_pretrained_path is not None:
                 # Load pretrained LiteML model after QAT
-                self.net = RetrainerModel.from_pretrained(self.net,
-                                                          self.liteml_config_path,  # 'liteml_configs/config_static.yaml',
-                                                          self.liteml_pretrained_path,  # self.weights_path
-                                                          device=self.device,
-                                                          dummy_input=torch.rand((1, 1, 240, 320)),
-                                                          )
+                self.net = from_pretrained(self.net,
+                                              self.liteml_config_path,
+                                              self.liteml_pretrained_path,
+                                              device=self.device,
+                                              dummy_input=torch.rand((1, 1, 240, 320)),
+                                              )
                 self.net.eval()
                 self.net = self.net.to(self.device)
                 logging.info('successfully load LiteML QAT pretrained model from: %s', self.liteml_pretrained_path)
@@ -109,10 +110,6 @@ class Val_model_heatmap(SuperPointFrontend_torch):
 
                 )
                 self.net = self.net.to(self.device)
-                # # liteml_conf_path = 'liteml_configs/config_dynamic.yaml'
-                # liteml_conf_path = 'liteml_configs/config_static.yaml'
-                # liteml_conf_path = 'liteml_configs/config_static_w8a8.yaml'
-                # liteml_config = load_config(liteml_conf_path)
                 liteml_config = load_config(self.liteml_config_path)
                 liteml_config['QAT']['data_quantization']['calibration_loader'] = calib_loader
                 liteml_config['QAT']['data_quantization']['calibration_loader_key'] = lambda model, x: model(

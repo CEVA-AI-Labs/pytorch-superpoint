@@ -19,7 +19,7 @@ deprecation
 onnxruntime
 schema
 
-datasets
+datasets==1.11.0
 accelerate
 pillow
 packaging
