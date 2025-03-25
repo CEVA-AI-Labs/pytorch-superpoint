@@ -5,10 +5,8 @@ import onnx
 
 def convert_pth_to_onnx(model, onnx_model_path, input_size=(1, 1, 1000, 1000)):
 
-    # ダミー入力の作成
     dummy_input = torch.randn(*input_size)
 
-    # モデルのエクスポート
     torch.onnx.export(
         model,
         dummy_input,
@@ -35,7 +33,7 @@ if __name__ == "__main__":
                             map_location=lambda storage, loc: storage)
     model.load_state_dict(checkpoint['model_state_dict'])
 
-    input_size = (1, 1, 1000, 1000)  # モノクロ 1000x1000 ピクセル
+    input_size = (1, 1, 1000, 1000)
 
     convert_pth_to_onnx(model, onnx_model_path, input_size)
 

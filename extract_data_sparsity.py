@@ -19,7 +19,7 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 print(f'Using {device} for inference')
 
 
-def run_inference(config):
+def run_inference(config, use_liteml):
     from utils.loader import get_save_path
     from utils.var_dim import squeezeToNumpy
 
@@ -44,15 +44,17 @@ def run_inference(config):
     Val_model_heatmap = get_module("", config["front_end_model"])
     ## load pretrained
     val_agent = Val_model_heatmap(config["model"], device=device)
-    val_agent.calibration_data = config["calibration_data"]  # for calibration in PTQ
+    val_agent.calibration_data = config.get("calibration_data")  # for calibration in PTQ
 
     val_agent.loadModel()
     val_agent.net.to(device)
 
     # Add hooks
     zero_percentages = {}
-    # layer_names = register_hooks(val_agent.net, zero_percentages)
-    layer_names = register_hooks_quantized_model(val_agent.net, zero_percentages) # for quantized model
+    if use_liteml:
+        layer_names = register_hooks_quantized_model(val_agent.net, zero_percentages)  # for quantized model
+    else:
+        layer_names = register_hooks(val_agent.net, zero_percentages)
 
 
     ###### check!!!
@@ -138,7 +140,7 @@ def export_to_onnx(onnx_model_path, weights_path):
                             map_location=lambda storage, loc: storage)
     model.load_state_dict(checkpoint['model_state_dict'])
 
-    input_size = (1, 1, 1000, 1000)  # モノクロ 1000x1000 ピクセル
+    input_size = (1, 1, 1000, 1000)
 
     convert_pth_to_onnx(model, onnx_model_path, input_size)
 
@@ -167,25 +169,31 @@ def save_sparsity_config(zero_percentages, layer_mapping, path):
 
 
 def main():
+    # set use_liteml=True to wrap model with LiteML and apply quantization.
+    # set use_liteml=False to run the float model.
+    use_liteml = True
     onnx_path = 'onnx/superpoint.onnx'
-    # weights_path = 'logs/superpoint_coco_heat2_0/checkpoints/superPointNet_170000_checkpoint.pth.tar' # for PTQ
-    config = 'configs/liteml_magicpoint_repeatability_heatmap.yaml'
-    # config = 'configs/magicpoint_repeatability_heatmap.yaml'
+    if use_liteml:
+        config = 'configs/liteml_magicpoint_repeatability_heatmap_W4A8_QAT.yaml'  # W4A8 QAT model wrapped with LiteML
+        # config = 'configs/liteml_magicpoint_repeatability_heatmap_W8A8_PTQ.yaml'  # W8A8 PTQ model wrapped with LiteML
+    else:
+        weights_path = 'logs/superpoint_coco_heat2_0/checkpoints/superPointNet_170000_checkpoint.pth.tar'  # for PTQ
+        config = 'configs/magicpoint_repeatability_heatmap.yaml'  # Float model without LiteML
     with open(config, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    layer_names, zero_percentages = run_inference(config)
+    layer_names, zero_percentages = run_inference(config, use_liteml)
 
     zero_percentages_avg = {key: np.average(zero_percentages[key]) for key in zero_percentages}
 
     for layer, percentage in zero_percentages_avg.items():
         print(f"Layer: {layer}, Zero Percentage: {percentage * 100:.2f}%")
 
-    # export_to_onnx(onnx_path, weights_path)
-    # #
-    # onnx_model = load_onnx_model(onnx_path)
-    # layer_mapping = create_layer_mapping(layer_names, onnx_model)
-    # #
-    # save_sparsity_config(zero_percentages, layer_mapping, './onnx/superpoint_sparsity_cfg.json')
+    if not use_liteml:
+        # The code below works only for models that are not wrapped with LiteML
+        export_to_onnx(onnx_path, weights_path)
+        onnx_model = load_onnx_model(onnx_path)
+        layer_mapping = create_layer_mapping(layer_names, onnx_model)
+        save_sparsity_config(zero_percentages, layer_mapping, './onnx/superpoint_sparsity_cfg.json')
 
 
 if __name__ == "__main__":
