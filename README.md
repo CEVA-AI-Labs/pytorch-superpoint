@@ -1,11 +1,7 @@
-# pytorch-superpoint
+# Quantization of pytorch-superpoint with LiteML
 
-This is a PyTorch implementation of  "SuperPoint: Self-Supervised Interest Point Detection and Description." Daniel DeTone, Tomasz Malisiewicz, Andrew Rabinovich. [ArXiv 2018](https://arxiv.org/abs/1712.07629).
-This code is partially based on the tensorflow implementation
-https://github.com/rpautrat/SuperPoint.
-
-Please be generous to star this repo if it helps your research.
-This repo is a bi-product of our paper [deepFEPE(IROS 2020)](https://github.com/eric-yyjau/pytorch-deepFEPE.git).
+This is a fork of [pytorch-superpoint](https://github.com/eric-yyjau/pytorch-superpoint/tree/master) repo that demonstrates the usage of LiteML to perform PTQ and QAT on superpoint model.
+The original repo is a PyTorch implementation of  "SuperPoint: Self-Supervised Interest Point Detection and Description." Daniel DeTone, Tomasz Malisiewicz, Andrew Rabinovich. [ArXiv 2018](https://arxiv.org/abs/1712.07629).
 
 ## Differences between our implementation and original paper
 - *Descriptor loss*: We tested descriptor loss using different methods, including dense method (as paper but slightly different) and sparse method. We notice sparse loss can converge more efficiently with similar performance. The default setting here is sparse method.
@@ -27,15 +23,15 @@ This repo is a bi-product of our paper [deepFEPE(IROS 2020)](https://github.com/
 ## Installation
 ### Requirements
 - python == 3.6
-- pytorch >= 1.1 (tested in 1.3.1)
-- torchvision >= 0.3.0 (tested in 0.4.2)
-- cuda (tested in cuda10)
+- pytorch >= 1.1 (tested in 1.10.0)
+- torchvision >= 0.3.0 (tested in 0.11.1)
+- cuda (tested in cuda11.3)
 
 ```
 conda create --name py36-sp python=3.6
 conda activate py36-sp
 pip install -r requirements.txt
-pip install -r requirements_torch.txt # install pytorch
+pip install liteml_sp-25.0.0-cp36-cp36m-linux_x86_64.whl --extra-index-url https://download.pytorch.org/whl/cu113
 ```
 
 ### Path setting
@@ -57,55 +53,98 @@ datasets/ ($DATA_DIR)
 |   |-- i_ajuntament
 |   `-- ...
 `-- synthetic_shapes  # will be automatically created
-`-- KITTI (accumulated folders from raw data)
-|   |-- 2011_09_26_drive_0020_sync
-|   |   |-- image_00/
-|   |   `-- ...
-|   |-- ...
-|   `-- 2011_09_28_drive_0001_sync
-|   |   |-- image_00/
-|   |   `-- ...
-|   |-- ...
-|   `-- 2011_09_29_drive_0004_sync
-|   |   |-- image_00/
-|   |   `-- ...
-|   |-- ...
-|   `-- 2011_09_30_drive_0016_sync
-|   |   |-- image_00/
-|   |   `-- ...
-|   |-- ...
-|   `-- 2011_10_03_drive_0027_sync
-|   |   |-- image_00/
-|   |   `-- ...
 ```
 - MS-COCO 2014 
     - [MS-COCO 2014 link](http://cocodataset.org/#download)
 - HPatches
     - [HPatches link](http://icvl.ee.ic.ac.uk/vbalnt/hpatches/hpatches-sequences-release.tar.gz)
-- KITTI Odometry
-    - [KITTI website](http://www.cvlibs.net/datasets/kitti/raw_data.php)
-    - [download link](http://www.cvlibs.net/download.php?file=raw_data_downloader.zip)
 
 
 
-## run the code
-- Notes:
-    - Start from any steps (1-4) by downloading some intermediate results
-    - Training usually takes 8-10 hours on one 'NVIDIA 2080Ti'.
-    - Currently Support training on 'COCO' dataset (original paper), 'KITTI' dataset.
-- Tensorboard:
-    - log files is saved under 'runs/<\export_task>/...'
-    
-`tensorboard --logdir=./runs/ [--host | static_ip_address] [--port | 6008]`
+## Run the code
+This repo supports:
 
-### 1) Training MagicPoint on Synthetic Shapes
+1) Running PTQ on a pretrained float model and evaluating the model.
+
+2) Loading a pretrained QAT model and evaluating the model.
+
+3) Performing QAT on a pretrained float model using COCO dataset.
+
+### 1) Running PTQ on a pretrained float model and evaluating the model
+This step loads a pretrained superpoint model, wraps it with LiteML to perform PTQ with W8A8 configuration, exports the detections on HPatches dataset and finally evaluates the repeatbility.
+#### Perform PTQ and export keypoints and descriptors
+- download HPatches dataset (link above). Put in the $DATA_DIR. The general command is
+```python export.py <export task> <config file> <export folder>```
 ```
-python train4.py train_base configs/magicpoint_shapes_pair.yaml magicpoint_synth --eval
+python export.py export_descriptor configs/liteml_magicpoint_repeatability_heatmap_W8A8_PTQ.yaml W8A8_per_tensor_PTQ
 ```
-you don't need to download synthetic data. You will generate it when first running it.
-Synthetic data is exported in `./datasets`. You can change the setting in `settings.py`.
+#### Evaluate
+The general command is
+```python evaluation.py <path to npz files> [-r, --repeatibility | -o, --outputImg | -homo, --homography ]```
+- Evaluate homography estimation/ repeatability/ matching scores ...
+```
+python evaluation.py logs/W8A8_per_tensor_PTQ/predictions --repeatibility
+```
 
-### 2) Exporting detections on MS-COCO / kitti
+### 2) Loading a pretrained QAT model and evaluating the model
+This step loads an already retrained model with QAT for W4A8 configuration. It then exports the detections on HPatches dataset and evaluates the repeatbility. The steps below are similar to step (1) but with different config file.
+#### Load a pretrained QAT model and export keypoints and descriptors
+- download HPatches dataset (link above) if haven't done in step (1). Put in the $DATA_DIR. The general command is
+```python export.py <export task> <config file> <export folder>```
+```
+python export.py export_descriptor configs/liteml_magicpoint_repeatability_heatmap_W4A8_QAT.yaml W4A8_per_channel_QAT_170800
+```
+#### Evaluate
+```
+python evaluation.py logs/W4A8_per_channel_QAT_170800/predictions --repeatibility
+```
+
+### 3) Performing QAT on a pretrained float model using COCO dataset
+#### a) - Exporting pseudo ground truth labels on MS-COCO
+This is the step of homography adaptation(HA) to export pseudo ground truth for joint training.
+- make sure the pretrained model in config file is correct
+- make sure COCO dataset is in '$DATA_DIR' (defined in setting.py)
+<!-- - you can export hpatches or coco dataset by editing the 'task' in config file -->
+- config file:
+```
+export_folder: <'train' | 'val'>  # set export for training or validation
+```
+##### General command:
+```
+python export.py <export task>  <config file>  <export folder> [--outputImg | output images for visualization (space inefficient)]
+```
+##### export coco - do on training set 
+```
+python export.py export_detector_homoAdapt configs/magicpoint_coco_export.yaml magicpoint_synth_homoAdapt_coco
+```
+##### export coco - do on validation set 
+- Edit 'export_folder' to 'val' in 'magicpoint_coco_export.yaml'
+```
+python export.py export_detector_homoAdapt configs/magicpoint_coco_export.yaml magicpoint_synth_homoAdapt_coco
+```
+
+
+#### b) - Performing QAT using the exported pseudo ground truth labels on MS-COCO
+You need pseudo ground truth labels to traing detectors. Labels can be exported from step a) Then, you need to set config file before training.
+- config file
+  - root: specify your labels root
+  - root_split_txt: where you put the train.txt/ val.txt split files (no need for COCO, needed for KITTI)
+  - labels: the exported labels from homography adaptation
+  - pretrained: specify the pretrained model (you can train from scratch)
+- 'eval': turn on the evaluation during training 
+
+#### General command
+```
+python train4.py <train task> <config file> <export folder> --eval
+```
+
+#### COCO
+```
+python train4.py train_joint train_joint configs/liteml_superpoint_coco_train_heatmap.yaml superpoint_coco_liteml_w4a8_qat --eval --debug
+```
+
+
+### 1) Exporting detections on MS-COCO / kitti
 This is the step of homography adaptation(HA) to export pseudo ground truth for joint training.
 - make sure the pretrained model in config file is correct
 - make sure COCO dataset is in '$DATA_DIR' (defined in setting.py)
@@ -165,6 +204,29 @@ python train4.py train_joint configs/superpoint_coco_train_heatmap.yaml superpoi
 ```
 python train4.py train_joint configs/superpoint_kitti_train_heatmap.yaml superpoint_kitti --eval --debug
 ```
+
+- set your batch size (originally 1)
+- refer to: 'train_tutorial.md'
+
+### 3)b Performing QAT on a Superpoint model on MS-COCO
+You need pseudo ground truth labels to traing detectors. Labels can be exported from step 2) or downloaded from [link](https://drive.google.com/drive/folders/1nnn0UbNMFF45nov90PJNnubDyinm2f26?usp=sharing). Then, as usual, you need to set config file before training.
+- config file
+  - root: specify your labels root
+  - root_split_txt: where you put the train.txt/ val.txt split files (no need for COCO, needed for KITTI)
+  - labels: the exported labels from homography adaptation
+  - pretrained: specify the pretrained model (you can train from scratch)
+- 'eval': turn on the evaluation during training 
+
+#### General command
+```
+python train4.py <train task> <config file> <export folder> --eval
+```
+
+#### COCO
+```
+python train4.py train_joint train_joint configs/liteml_superpoint_coco_train_heatmap.yaml superpoint_coco_liteml_w4a8_qat_b --eval --debug
+```
+
 
 - set your batch size (originally 1)
 - refer to: 'train_tutorial.md'
