@@ -36,13 +36,13 @@ pip install liteml_sp-25.0.0-cp36-cp36m-linux_x86_64.whl --extra-index-url https
 ```
 
 ### Path setting
-- paths for datasets ($DATA_DIR), logs are set in `setting.py`
+- paths for datasets ($DATA_PATH), logs are set in `setting.py`
 
 ### Dataset
-Datasets should be downloaded into $DATA_DIR. The Synthetic Shapes dataset will also be generated there. The folder structure should look like:
+Datasets should be downloaded into $DATA_PATH. The Synthetic Shapes dataset will also be generated there. The folder structure should look like:
 
 ```
-datasets/ ($DATA_DIR)
+datasets/ ($DATA_PATH)
 |-- COCO
 |   |-- train2014
 |   |   |-- file1.jpg
@@ -74,7 +74,7 @@ This repo supports:
 ### 1) Running PTQ on a pretrained float model and evaluating the model
 This step loads a pretrained superpoint model, wraps it with LiteML to perform PTQ with W8A8 configuration, exports the detections on HPatches dataset and finally evaluates the repeatbility.
 #### Perform PTQ and export keypoints and descriptors
-- download HPatches dataset (link above). Put in the $DATA_DIR. The general command is
+- download HPatches dataset (link above). Put in the $DATA_PATH. The general command is
 ```python export.py <export task> <config file> <export folder>```
 ```
 python export.py export_descriptor configs/liteml_magicpoint_repeatability_heatmap_W8A8_PTQ.yaml W8A8_per_tensor_PTQ
@@ -90,7 +90,7 @@ python evaluation.py logs/W8A8_per_tensor_PTQ/predictions --repeatibility
 ### 2) Loading a pretrained QAT model and evaluating the model
 This step loads an already retrained model with QAT for W4A8 configuration. It then exports the detections on HPatches dataset and evaluates the repeatbility. The steps below are similar to step (1) but with different config file.
 #### Load a pretrained QAT model and export keypoints and descriptors
-- download HPatches dataset (link above) if haven't done in step (1). Put in the $DATA_DIR. The general command is
+- download HPatches dataset (link above) if haven't done in step (1). Put in the $DATA_PATH. The general command is
 ```python export.py <export task> <config file> <export folder>```
 ```
 python export.py export_descriptor configs/liteml_magicpoint_repeatability_heatmap_W4A8_QAT.yaml W4A8_per_channel_QAT_170800
@@ -104,7 +104,7 @@ python evaluation.py logs/W4A8_per_channel_QAT_170800/predictions --repeatibilit
 #### a) Exporting pseudo ground truth labels on MS-COCO
 This is the step of homography adaptation(HA) to export pseudo ground truth for joint training. This is done on a float model before the QAT stage.
 - make sure the pretrained model in config file is correct
-- make sure COCO dataset is in '$DATA_DIR' (defined in setting.py)
+- make sure COCO dataset is in '$DATA_PATH' (defined in setting.py)
 <!-- - you can export hpatches or coco dataset by editing the 'task' in config file -->
 - config file:
 ```
