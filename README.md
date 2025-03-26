@@ -27,6 +27,7 @@ The original repo is a PyTorch implementation of  "SuperPoint: Self-Supervised I
 - torchvision >= 0.3.0 (tested in 0.11.1)
 - cuda (tested in cuda11.3)
 
+Copy the provided LiteML whl file to this folder and then install using the commands below:
 ```
 conda create --name py36-sp python=3.6
 conda activate py36-sp
@@ -46,13 +47,13 @@ datasets/ ($DATA_DIR)
 |   |-- train2014
 |   |   |-- file1.jpg
 |   |   `-- ...
-|   `-- val2014
+|   |-- val2014
 |       |-- file1.jpg
 |       `-- ...
-`-- HPatches
+|-- HPatches
 |   |-- i_ajuntament
 |   `-- ...
-`-- synthetic_shapes  # will be automatically created
+|-- synthetic_shapes  # will be automatically created
 ```
 - MS-COCO 2014 
     - [MS-COCO 2014 link](http://cocodataset.org/#download)
@@ -100,8 +101,8 @@ python evaluation.py logs/W4A8_per_channel_QAT_170800/predictions --repeatibilit
 ```
 
 ### 3) Performing QAT on a pretrained float model using COCO dataset
-#### a) - Exporting pseudo ground truth labels on MS-COCO
-This is the step of homography adaptation(HA) to export pseudo ground truth for joint training.
+#### a) Exporting pseudo ground truth labels on MS-COCO
+This is the step of homography adaptation(HA) to export pseudo ground truth for joint training. This is done on a float model before the QAT stage.
 - make sure the pretrained model in config file is correct
 - make sure COCO dataset is in '$DATA_DIR' (defined in setting.py)
 <!-- - you can export hpatches or coco dataset by editing the 'task' in config file -->
@@ -113,7 +114,8 @@ export_folder: <'train' | 'val'>  # set export for training or validation
 ```
 python export.py <export task>  <config file>  <export folder> [--outputImg | output images for visualization (space inefficient)]
 ```
-##### export coco - do on training set 
+##### export coco - do on training set
+- Edit 'export_folder' to 'train' in 'magicpoint_coco_export.yaml'
 ```
 python export.py export_detector_homoAdapt configs/magicpoint_coco_export.yaml magicpoint_synth_homoAdapt_coco
 ```
@@ -124,13 +126,13 @@ python export.py export_detector_homoAdapt configs/magicpoint_coco_export.yaml m
 ```
 
 
-#### b) - Performing QAT using the exported pseudo ground truth labels on MS-COCO
+#### b) Performing QAT using the exported pseudo ground truth labels on MS-COCO
 You need pseudo ground truth labels to traing detectors. Labels can be exported from step a) Then, you need to set config file before training.
 - config file
   - root: specify your labels root
   - root_split_txt: where you put the train.txt/ val.txt split files (no need for COCO, needed for KITTI)
   - labels: the exported labels from homography adaptation
-  - pretrained: specify the pretrained model (you can train from scratch)
+  - pretrained: specify the pretrained float model (you can train from scratch)
 - 'eval': turn on the evaluation during training 
 
 #### General command
@@ -143,156 +145,17 @@ python train4.py <train task> <config file> <export folder> --eval
 python train4.py train_joint train_joint configs/liteml_superpoint_coco_train_heatmap.yaml superpoint_coco_liteml_w4a8_qat --eval --debug
 ```
 
-
-### 1) Exporting detections on MS-COCO / kitti
-This is the step of homography adaptation(HA) to export pseudo ground truth for joint training.
-- make sure the pretrained model in config file is correct
-- make sure COCO dataset is in '$DATA_DIR' (defined in setting.py)
-<!-- - you can export hpatches or coco dataset by editing the 'task' in config file -->
-- config file:
-```
-export_folder: <'train' | 'val'>  # set export for training or validation
-```
-#### General command:
-```
-python export.py <export task>  <config file>  <export folder> [--outputImg | output images for visualization (space inefficient)]
-```
-#### export coco - do on training set 
-```
-python export.py export_detector_homoAdapt configs/magicpoint_coco_export.yaml magicpoint_synth_homoAdapt_coco
-```
-#### export coco - do on validation set 
-- Edit 'export_folder' to 'val' in 'magicpoint_coco_export.yaml'
-```
-python export.py export_detector_homoAdapt configs/magicpoint_coco_export.yaml magicpoint_synth_homoAdapt_coco
-```
-#### export kitti
-- config
-  - check the 'root' in config file 
-  - train/ val split_files are included in `datasets/kitti_split/`.
-```
-python export.py export_detector_homoAdapt configs/magicpoint_kitti_export.yaml magicpoint_base_homoAdapt_kitti
-```
-<!-- #### export tum
-- config
-  - check the 'root' in config file
-  - set 'datasets/tum_split/train.txt' as the sequences you have
-```
-python export.py export_detector_homoAdapt configs/magicpoint_tum_export.yaml magicpoint_base_homoAdapt_tum
-``` -->
-
-
-### 3) Training Superpoint on MS-COCO/ KITTI
-You need pseudo ground truth labels to traing detectors. Labels can be exported from step 2) or downloaded from [link](https://drive.google.com/drive/folders/1nnn0UbNMFF45nov90PJNnubDyinm2f26?usp=sharing). Then, as usual, you need to set config file before training.
-- config file
-  - root: specify your labels root
-  - root_split_txt: where you put the train.txt/ val.txt split files (no need for COCO, needed for KITTI)
-  - labels: the exported labels from homography adaptation
-  - pretrained: specify the pretrained model (you can train from scratch)
-- 'eval': turn on the evaluation during training 
-
-#### General command
-```
-python train4.py <train task> <config file> <export folder> --eval
-```
-
-#### COCO
-```
-python train4.py train_joint configs/superpoint_coco_train_heatmap.yaml superpoint_coco --eval --debug
-```
-#### kitti
-```
-python train4.py train_joint configs/superpoint_kitti_train_heatmap.yaml superpoint_kitti --eval --debug
-```
-
-- set your batch size (originally 1)
-- refer to: 'train_tutorial.md'
-
-### 3)b Performing QAT on a Superpoint model on MS-COCO
-You need pseudo ground truth labels to traing detectors. Labels can be exported from step 2) or downloaded from [link](https://drive.google.com/drive/folders/1nnn0UbNMFF45nov90PJNnubDyinm2f26?usp=sharing). Then, as usual, you need to set config file before training.
-- config file
-  - root: specify your labels root
-  - root_split_txt: where you put the train.txt/ val.txt split files (no need for COCO, needed for KITTI)
-  - labels: the exported labels from homography adaptation
-  - pretrained: specify the pretrained model (you can train from scratch)
-- 'eval': turn on the evaluation during training 
-
-#### General command
-```
-python train4.py <train task> <config file> <export folder> --eval
-```
-
-#### COCO
-```
-python train4.py train_joint train_joint configs/liteml_superpoint_coco_train_heatmap.yaml superpoint_coco_liteml_w4a8_qat_b --eval --debug
-```
-
-
-- set your batch size (originally 1)
-- refer to: 'train_tutorial.md'
-
-### 4) Export/ Evaluate the metrics on HPatches
-- Use pretrained model or specify your model in config file
-- ```./run_export.sh``` will run export then evaluation.
-
-#### Export
-- download HPatches dataset (link above). Put in the $DATA_DIR.
-```python export.py <export task> <config file> <export folder>```
-- Export keypoints, descriptors, matching
-```
-python export.py export_descriptor  configs/magicpoint_repeatability_heatmap.yaml superpoint_hpatches_test
-```
-#### evaluate
-```python evaluation.py <path to npz files> [-r, --repeatibility | -o, --outputImg | -homo, --homography ]```
-- Evaluate homography estimation/ repeatability/ matching scores ...
-```
-python evaluation.py logs/superpoint_hpatches_test/predictions --repeatibility --outputImg --homography --plotMatching
-```
-
-### 5) Export/ Evaluate repeatability on SIFT
-- Refer to another project: [Feature-preserving image denoising with multiresolution filters](https://github.com/eric-yyjau/image_denoising_matching)
-```shell
-# export detection, description, matching
-python export_classical.py export_descriptor configs/classical_descriptors.yaml sift_test --correspondence
-
-# evaluate (use 'sift' flag)
-python evaluation.py logs/sift_test/predictions --sift --repeatibility --homography 
-```
-
-
-- specify the pretrained model
-
 ## Pretrained models
-### Current best model
-- *COCO dataset*
+### Current best models
+- *COCO dataset - float model*
 ```logs/superpoint_coco_heat2_0/checkpoints/superPointNet_170000_checkpoint.pth.tar```
-- *KITTI dataset*
-```logs/superpoint_kitti_heat2_0/checkpoints/superPointNet_50000_checkpoint.pth.tar```
+
+- *COCO dataset - W4A8 QAT model, retrained for 800 iterations on top of the float model above*
+```logs/superpoint_coco_liteml_w4a8_qat/checkpoints/superPointNet_170800_checkpoint.pth.tar```
+
 ### model from magicleap
 ```pretrained/superpoint_v1.pth```
 
-## Jupyter notebook 
-```shell
-# show images saved in the folders
-jupyter notebook
-notebooks/visualize_hpatches.ipynb 
-```
-
-## Updates (year.month.day)
-- 2020.08.05: 
-  - Update pytorch nms from (https://github.com/eric-yyjau/pytorch-superpoint/pull/19)
-  - Update and test KITTI dataloader and labels on google drive (should be able to fit the KITTI raw format)
-  - Update and test SIFT evaluate at step 5.
-
-## Known problems
-- ~~test step 5: evaluate on SIFT~~
-- Export COCO dataset in low resolution (240x320) instead of high resolution (480x640).
-- Due to step 1 was done long time ago. We are still testing it again along with step 2-4. Please refer to our pretrained model or exported labels. Or let us know how the whole pipeline works.
-- Warnings from tensorboard.
-
-## Work in progress
-- Release notebooks with unit testing.
-- Dataset: ApolloScape/ TUM.
 
 ## Citations
 Please cite the original paper.
@@ -320,6 +183,3 @@ Eprint = {arXiv:2007.15122},
 This implementation is developed by [You-Yi Jau](https://github.com/eric-yyjau) and [Rui Zhu](https://github.com/Jerrypiglet). Please contact You-Yi for any problems. 
 Again the work is based on Tensorflow implementation by [Rémi Pautrat](https://github.com/rpautrat) and [Paul-Edouard Sarlin](https://github.com/Skydes) and official [SuperPointPretrainedNetwork](https://github.com/MagicLeapResearch/SuperPointPretrainedNetwork).
 Thanks to Daniel DeTone for help during the implementation.
-
-## Posts
-[What have I learned from the implementation of deep learning paper?](https://medium.com/@eric.yyjau/what-have-i-learned-from-the-implementation-of-deep-learning-paper-365ee3253a89)
