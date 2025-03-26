@@ -29,9 +29,7 @@ data:
     # name: 'coco'
     dataset: 'Coco' # 'coco'
 
-#    labels: logs/magicpoint_synth_homoAdapt_coco/predictions
-    labels: /projects/vbu_projects/users/royj/gitRepos/pytorch-superpoint/logs/magicpoint_synth_homoAdapt_coco/predictions
-#    labels: datasets/COCO/pseudo_labels  # small dataset that I used for QAT
+    labels: logs/magicpoint_synth_homoAdapt_coco/predictions
     root: # datasets/COCO
     root_split_txt: # /datasets/COCO
 
