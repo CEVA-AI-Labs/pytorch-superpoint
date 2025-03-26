@@ -142,7 +142,7 @@ python train4.py <train task> <config file> <export folder> --eval
 
 #### COCO
 ```
-python train4.py train_joint train_joint configs/liteml_superpoint_coco_train_heatmap.yaml superpoint_coco_liteml_w4a8_qat --eval --debug
+python train4.py train_joint configs/liteml_superpoint_coco_train_heatmap.yaml superpoint_coco_liteml_w4a8_qat --eval --debug
 ```
 
 ## Pretrained models
