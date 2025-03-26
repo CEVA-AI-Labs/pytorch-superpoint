@@ -3,22 +3,6 @@
 This is a fork of [pytorch-superpoint](https://github.com/eric-yyjau/pytorch-superpoint/tree/master) repo that demonstrates the usage of LiteML to perform PTQ and QAT on superpoint model.
 The original repo is a PyTorch implementation of  "SuperPoint: Self-Supervised Interest Point Detection and Description." Daniel DeTone, Tomasz Malisiewicz, Andrew Rabinovich. [ArXiv 2018](https://arxiv.org/abs/1712.07629).
 
-## Differences between our implementation and original paper
-- *Descriptor loss*: We tested descriptor loss using different methods, including dense method (as paper but slightly different) and sparse method. We notice sparse loss can converge more efficiently with similar performance. The default setting here is sparse method.
-
-## Results on HPatches
-| Task                                      | Homography estimation |      |      | Detector metric |      | Descriptor metric |                |
-|-------------------------------------------|-----------------------|------|------|-----------------|------|-------------------|----------------|
-|                                           | Epsilon = 1           | 3    | 5    | Repeatability   | MLE  | NN mAP            | Matching Score |
-| Pretrained model                        | 0.44                  | 0.77 | 0.83 | 0.606           | 1.14 | 0.81              | 0.55           |
-| Sift (subpixel accuracy)                  | 0.63                  | 0.76 | 0.79 | 0.51            | 1.16 | 0.70               | 0.27            |
-| superpoint_coco_heat2_0_170k_hpatches_sub | 0.46                  | 0.75 | 0.81 | 0.63            | 1.07 | 0.78              | 0.42           |
-| superpoint_kitti_heat2_0_50k_hpatches_sub | 0.44                  | 0.71 | 0.77 | 0.56            | 0.95 | 0.78              | 0.41           |
-
-- Pretrained model is from [SuperPointPretrainedNetwork](https://github.com/MagicLeapResearch/SuperPointPretrainedNetwork).
-- The evaluation is done under our evaluation scripts.
-- COCO/ KITTI pretrained model is included in this repo.
-
 
 ## Installation
 ### Requirements
@@ -169,17 +153,7 @@ Please cite the original paper.
 }
 ```
 
-Please also cite our DeepFEPE paper.
-```
-@misc{2020_jau_zhu_deepFEPE,
-Author = {You-Yi Jau and Rui Zhu and Hao Su and Manmohan Chandraker},
-Title = {Deep Keypoint-Based Camera Pose Estimation with Geometric Constraints},
-Year = {2020},
-Eprint = {arXiv:2007.15122},
-}
-```
 
 # Credits
-This implementation is developed by [You-Yi Jau](https://github.com/eric-yyjau) and [Rui Zhu](https://github.com/Jerrypiglet). Please contact You-Yi for any problems. 
+This is a fork of the [pytorch-superpoint](https://github.com/eric-yyjau/pytorch-superpoint/tree/master) developed by [You-Yi Jau](https://github.com/eric-yyjau) and [Rui Zhu](https://github.com/Jerrypiglet). Please contact You-Yi for any problems. 
 Again the work is based on Tensorflow implementation by [Rémi Pautrat](https://github.com/rpautrat) and [Paul-Edouard Sarlin](https://github.com/Skydes) and official [SuperPointPretrainedNetwork](https://github.com/MagicLeapResearch/SuperPointPretrainedNetwork).
-Thanks to Daniel DeTone for help during the implementation.
