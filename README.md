@@ -41,7 +41,7 @@ datasets/ ($DATA_PATH)
 ```
 - MS-COCO 2014 
     - [MS-COCO 2014 link](http://cocodataset.org/#download)
-- HPatches
+- HPatches (Link does not work, will be provided by CEVA)
     - [HPatches link](http://icvl.ee.ic.ac.uk/vbalnt/hpatches/hpatches-sequences-release.tar.gz)
 
 
