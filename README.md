@@ -91,6 +91,27 @@ python export.py export_descriptor configs/liteml_magicpoint_repeatability_heatm
 ```
 python evaluation.py logs/W4A8_per_channel_QAT_170800/predictions --repeatibility
 ```
+**Note**: If a RuntimeError ("Attempting to deserialize object on a CUDA device but torch.cuda.is_available() is False. If you are running on a CPU-only machine, please use torch.load with map_location=torch.device('cpu') to map your storages to the CPU.") is raised, please modify val_model_heatmap.py by adding map_location=torch.device('cpu') to the call to from_pretrained method:
+```
+...
+if self.liteml_config_path is not None: # wrap with LiteML
+            if self.liteml_pretrained_path is not None:
+                # Load pretrained LiteML model after QAT
+                self.net = from_pretrained(self.net,
+                                              self.liteml_config_path,
+                                              self.liteml_pretrained_path,
+                                              device=self.device,
+                                              dummy_input=torch.rand((1, 1, 240, 320)),
+                                              map_location=torch.device('cpu'),
+                                              )
+                self.net.eval()
+                self.net = self.net.to(self.device)
+                logging.info('successfully load LiteML QAT pretrained model from: %s', self.liteml_pretrained_path)
+
+            else:
+                ...
+```
+
 
 ### 3) Performing QAT on a pretrained float model using COCO dataset
 #### a) Exporting pseudo ground truth labels on MS-COCO
