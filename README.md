@@ -11,6 +11,14 @@ The original repo is a PyTorch implementation of  "SuperPoint: Self-Supervised I
 - torchvision >= 0.3.0 (tested in 0.11.1)
 - cuda (tested in cuda11.3)
 
+If you are running with the provided docker image follow these steps first to load and run the image:
+```
+docker load --input liteml_superpoint.tar
+docker run -it --rm -v absolute\path\to\release\folder\:/nintendo_superpoint liteml_superpoint bash
+conda init
+source /root/.bashrc
+```
+
 Copy the provided LiteML whl file to this folder and then install using the commands below:
 ```
 conda create --name py36-sp python=3.6
