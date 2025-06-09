@@ -39,9 +39,9 @@ datasets/ ($DATA_PATH)
 |   `-- ...
 |-- synthetic_shapes  # will be automatically created
 ```
-- MS-COCO 2014 
+- MS-COCO 2014 (download 2014 train and val images)
     - [MS-COCO 2014 link](http://cocodataset.org/#download)
-- HPatches (Link does not work, will be provided by CEVA)
+- HPatches (link does not work, the dataset will be provided by CEVA)
     - [HPatches link](http://icvl.ee.ic.ac.uk/vbalnt/hpatches/hpatches-sequences-release.tar.gz)
 
 
