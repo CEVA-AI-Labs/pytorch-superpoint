@@ -44,7 +44,7 @@ class Val_model_heatmap(SuperPointFrontend_torch):
         self.liteml_pretrained_path = self.config.get('liteml_pretrained_path', None)
         if self.weights_path is not None and self.liteml_pretrained_path is not None:
             raise (ValueError, 'Only pretrained or liteml_pretrained_path should be passed in the config, not both.')
-
+        self.onnx_path = self.config.get('onnx_path', None)
         self.device=device
 
         ## other parameters
@@ -80,6 +80,18 @@ class Val_model_heatmap(SuperPointFrontend_torch):
             self.net.load_state_dict(checkpoint['model_state_dict'])  # load pretrained float model
             self.net = self.net.to(self.device)
             logging.info('successfully load pretrained model from: %s', self.weights_path)
+
+        if self.onnx_path is not None:
+            import onnxruntime as ort
+            session = ort.InferenceSession(self.onnx_path)
+            def run(input_data):
+                device = input_data.device
+                input_name = session.get_inputs()[0].name
+                out = session.run(None, {input_name: input_data.detach().cpu().numpy()})
+                out_dict = {'semi': torch.tensor(out[0], device=device), 'desc': torch.tensor(out[1], device=device)}
+                return out_dict
+            self.net = run
+            return
 
         if self.liteml_config_path is not None: # wrap with LiteML
             if self.liteml_pretrained_path is not None:
